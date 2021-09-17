@@ -1,105 +1,94 @@
-import React,{ useState } from "react";
+import React, { useState } from 'react'
+import Artists from './lib/Artists'
+import Playlists from './lib/Playlists'
+import Songs from './lib/Songs'
+import SearchBar from './lib/SearchBar'
 
 function App() {
-  const [results, updateResults] = useState([])
+  const [songResults, updateSongResults] = useState([])
+  const [artistResults, updateArtistResults] = useState([])
+  const [albumResults, updateAlbumResults] = useState([])
   const [songSearch, newSongSearch] = useState('Song title')
+  
+  let duration
+  let currentTime
+  setTimeout(() => {
+    duration = window.player.getDuration()
+    currentTime = window.player.getCurrentTime()
+  }, 1000);
 
-  const updateSongId = async () => {
-    let songList = []
-    const newId = await fetch('https://yt-music-api.herokuapp.com/api/yt/songs/' + songSearch)
-      .then(response => response.json())
-      .then(data => songList.push(data))
-    let newResults = []
-    for (let i = 0; i < songList[0].content.length; i++){
-      newResults.push({
-        videoId: songList[0].content[i].videoId,
-        id: i,
-        artist: songList[0].content[i].artist.name,
-        album: songList[0].content[i].album.name,
-        name: songList[0].content[i].name,
-        thumbnail: songList[0].content[i].thumbnails[1].url,
-        duration: songList[0].content[i].duration,
-      })
+  function handleSearchUpdate(songs, artists, albums) {
+    console.log("CALLED")
+    updateSongResults(songs)
+    updateArtistResults(artists)
+    updateAlbumResults(albums)
   }
-  console.log(newResults)
-    console.log(songList[0].content)
-    updateResults(newResults)
-  }
-
-  const updateResultList = (list) => {
-    console.log(list)
-  }
-
-  calculateProgressBar()
 
   return (
     <div className="App">
       <header className="App-header">
         <h3>Hi there!</h3>
-      </header>
-      <div>
-        <input value={songSearch} onChange={(e) => newSongSearch(e.target.value)}></input>
-        <button onClick={updateSongId}>♿</button>
-      </div>
-      <ul>
-        {results.map(d => (<li key={d.id}>
-          <SongCard thumbnail={d.thumbnail}
-            name={d.name}
-            artist={d.artist}
-            album={d.album}
-            duration={d.duration}
-            videoId={d.videoId}/>
-        </li>))}
-      </ul>
-      <footer id="player-controls">
-        <div id="progress-bar">
-          <div id="progress-fill"></div>
+        <div>
+          <SearchBar
+            updateSearch={handleSearchUpdate}
+            songSearch={songSearch}
+            newSongSearch={newSongSearch}/>
         </div>
-        <div id="progress-thumb"></div>
+      </header>
+      <h2>Artists</h2>
+      <Artists results={artistResults}/>
+      <h2>Playlists</h2>
+      <Playlists results={albumResults}/>
+      <h2>Songs</h2>
+      <Songs results={songResults}/>
+      <footer id="player-controls">
+        <ProgressBar
+          key={currentTime || 0}
+          currentTime={Math.floor(currentTime) || 0}
+          duration={Math.floor(duration) || 100}
+        />
       </footer>
     </div>
-  );
+  )
 }
 
-//<button onClick={() => playVideo(vidId)}>▶</button>
+function ProgressBar(props) {
+  const [currentTime, setCurrentTime] = useState(props.currentTime)
+  const [duration, setDuration] = useState(props.duration)
 
-function playVideo(videoID) {
-  window.player.loadVideoById(videoID)
-  window.player.playVideo()
-  document.getElementById("player-controls").style.filter="opacity(100)"
-}
+  const onCurrentTime = () => {
+    setCurrentTime(props.currentTime)
+    return currentTime
+  }
 
-function calculateProgressBar() {
-  let i = 0;
-}
+  const onDuration = () => {
+    setDuration(props.duration)
+    return duration
+  }
 
-function SongCard(props) {
-  let minutes = Math.floor(props.duration / 1000 / 60)
-  let seconds = (props.duration - (1000 * minutes * 60)) / 1000
+  let currentMinutes = Math.floor(currentTime / 60)
+  let currentSeconds = (currentTime - (currentMinutes * 60))
+  if (currentSeconds < 10)
+    currentSeconds = "0" + currentSeconds
+  currentMinutes += ":"
+  let durMinutes = Math.floor(duration / 60)
+  let durSeconds = (duration - (durMinutes * 60))
+  if (durSeconds < 10)
+    durSeconds = "0" + durSeconds
+  durMinutes += ":"
+  let newCurrentTime = currentMinutes + currentSeconds
+  let newDuration = durMinutes + durSeconds
+  
   return (
     <>
-      <div className="song-card" onClick={() => playVideo(props.videoId)}>
-        <div className="song-image">
-          <img src={props.thumbnail} />
-        </div>
-        <div className="about">
-          <div className="image-overlay"></div>
-          <div className="primary-desc">
-            <span>{props.name}</span>
-          </div>
-          <div className="secondary-desc">
-            <div>
-              <span>{props.artist} </span>
-              <span>{props.album} </span>
-            </div>
-            <div>
-              <span>{minutes}:{seconds}</span>
-            </div>
-          </div>
-        </div>
+      <div id="progress-bar">
+        <div key={currentTime} id="progress-fill"></div>
       </div>
+      <span key={props.getCurrentTime} id="progress-span">{newCurrentTime + "/" + newDuration}</span>
     </>
   )
 }
+
+//<button onClick={() => playVideo(vidId)}>▶</button>
 
 export default App;
