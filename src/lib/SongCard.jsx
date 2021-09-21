@@ -1,5 +1,5 @@
 import React from 'react'
-import PlayVideo from './PlayVideo'
+import { Redirect } from 'react-router-dom'
 
 class SongCard extends React.Component{
   constructor(props) {
@@ -7,6 +7,7 @@ class SongCard extends React.Component{
 
     this.state = {
       song: props.song,
+      Redirect: null
     }
   }
 
@@ -19,6 +20,17 @@ class SongCard extends React.Component{
     if (this.state.song.trackCount != null)
       return this.state.song.trackCount + " Tracks"
   }
+
+  handleClick(song, target) {
+    console.log(song)
+    this.sendToParent(song, target)
+    if (song.type === "artist") {
+      this.setState({Redirect: "/" + song.videoId + "/artist"})
+    }
+    if (song.type === "playlist") {
+      this.setState({Redirect: "/" + song.videoId + "/playlist"})
+    }
+  }
   
   //SPLIT: Does everything need to be sent to parent?
   sendToParent = async (song, target) => {
@@ -28,6 +40,10 @@ class SongCard extends React.Component{
       this.props.addSongToPlaylist(song)
     }
     if (song.type === "playlist") {
+      console.log(song.videoId)
+
+      //DEPRICATED: This adds the entire playlist into the players playlist - Could be useful
+      /*
       let songList = []
       let browseId = song.videoId.slice(2)
 
@@ -52,19 +68,26 @@ class SongCard extends React.Component{
           })
         }
       }
-      console.log(newResults)
+      console.log(newId)
       this.props.addSongToPlaylist(newResults)
+      */
+    }
+    if (song.type === "artist") {
+      this.props.setArtistId(song.videoId)
     }
   }
 
   render(props) {
+    if (this.state.Redirect) {
+      return <Redirect to={this.state.Redirect}/>
+    }
     return (
       <>
         <div className="song-card" onClick={(e) => {
-          this.sendToParent(this.state.song, e.target)
+          this.handleClick(this.state.song, e.target)
         }}>
           <div className="song-image">
-            <img src={this.state.song.thumbnail}/>
+            <img src={this.state.song.thumbnail} alt=""/>
           </div>
           <div className="about">
             <div className="image-overlay" />

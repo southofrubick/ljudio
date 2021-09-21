@@ -11,7 +11,21 @@ li{
   list-style: none;
 }
 
+#link-nav{
+  display: flex;
+  flex-direction: row;
+  position: absolute;
+  bottom: 0;
+  font-size: large;
+  left: -1.7vw;
+}
+
+#link-nav > *:not(:last-child){
+  margin-right: .2em;
+}
+
 #App-header{
+  position: relative;
   width: 100vw;
   height: 12vh;
 
@@ -32,18 +46,23 @@ li{
 
 #column{
   width: 80vw;
+  height: 88vh;
+  overflow-y: auto;
 }
 
 #side-bar{
-  position: relative;
-  margin-top: -1.2vh;
-  min-height: 2vh;
+  visibility: hidden;
+  position: absolute;
+  right: 0;
+  top: 11vh;
+  min-height: 20vh;
   max-height: 81vh;
   width: 20vw;
   background-color: rgb(36, 36, 36);
   overflow: hidden;
   overflow-y: auto;
-  box-shadow: inset 3px -3px 5px rgba(0, 0, 0, .1), -2px 8px 8px rgba(0, 0, 0, .2);
+  box-shadow: inset 3px -3px 6px rgba(0, 0, 0, .1), -2px 8px 8px rgba(0, 0, 0, .2);
+  padding-bottom: 1vh;
 }
 
 /* width */
@@ -73,8 +92,10 @@ li{
   flex-direction: column;
 }
 
-#side-bar-playlist > li > img{
+#plist-img{
   height: 5vh;
+  width: 5vh;
+  margin-left: 1vh;
 }
 
 #side-bar-playlist > li{
@@ -92,7 +113,7 @@ li{
   background-color: rgba(255, 250, 245, .1);
 }
 
-#side-bar-playlist > li > span{
+#plist-span{
   position: absolute;
   top: 30%;
   left: 18%;
@@ -218,6 +239,7 @@ li{
   padding: 0;
   display: flex;
   flex-wrap: wrap;
+  overflow-y: a;
 }
 
 footer{

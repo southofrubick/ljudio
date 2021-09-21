@@ -1,11 +1,19 @@
 import React from 'react'
 import SongCard from './lib/SongCard'
+import ArtistView from './lib/ArtistView'
+import PlaylistView from './lib/PlaylistView'
 import SearchBar from './lib/SearchBar'
 import ProgressBar from './lib/ProgressBar'
 import PlayVideo from './lib/PlayVideo'
+import MediaControls from './lib/MediaControls'
+import {
+  BrowserRouter as Router,
+  Switch,
+  Route,
+  Link,
+  useParams
+} from 'react-router-dom'
 
-//TODO: Add view for clicked playlist (what i did was dumb, but could be useful)
-//TODO: The same as above, but for artists
 //TODO: Give songs, artists and playlists independent urls - searchParam that fetches from API
 //TODO: Time on song sets to where on timeline you click
 
@@ -23,7 +31,8 @@ class App extends React.Component {
       isPlaying: true,
       selectedCategory: 'songs',
       currentPlaylist: [],
-      currentPlayIndex: 0
+      currentPlayIndex: 0,
+      mediaState: 1001
     }
   }
 
@@ -33,25 +42,31 @@ class App extends React.Component {
     this.setState({ playlistResults: playlists })
   }
 
-  handleTimers = (duration) => {
+  handleTimers = (dur) => {
     setTimeout(() => {
       let i = 0
       let self = this
       function loop() {
         setTimeout(() => {
           self.setState({ currentTime: window.player.getCurrentTime() })
-          if (i < duration)
+          if (i < dur)
             loop()
         }, 100);
       }
 
       loop()
     }, 500);
-    this.setState({ duration: duration / 1000 })
+    this.setState({ duration: dur / 1000 })
   }
 
   updateIsPlaying = (play) => {
     this.setState({ isPlaying: play })
+    if (play) {
+      this.setState({ mediaState: 1001 })
+    }
+    else {
+      this.setState({ mediaState: 1002 })
+    }
   }
 
   updateSelectedCategory(whatCat) {
@@ -70,9 +85,17 @@ class App extends React.Component {
       })
   }
 
-  //UPDATE:
+  updateMedia = (playlist, index) => {
+    this.setState({ currentPlaylist: playlist })
+    this.setState({ currentPlayIndex: index })
+    setTimeout(() => {
+      this.setState({ duration: window.player.getDuration() })
+    }, 100);
+  }
+  
   addSongToPlaylist = (songs) => {
     let newPlaylist = [...this.state.currentPlaylist]
+    document.getElementById("side-bar").style.visibility = "visible"
 
     if (Array.isArray(songs)) {
       songs.forEach(song => {
@@ -106,73 +129,140 @@ class App extends React.Component {
       }, 100);
   }
 
+  setArtistId = (artistId) => {
+    this.setState({ artistQuery: artistId })
+  }
+
   render(props) {
     return (
       <div className="App">
-        <header id="App-header">
-          <h3 id="title">Ljudio</h3>
-          <div>
-            <SearchBar
-              updateSearch={this.handleSearchUpdate} />
-          </div>
-        </header>
-        <div id="hero">
-          <div id="column">
-            <div className="category-select">
-              <span class="selected" onClick={() => this.updateSelectedCategory("songs")}>
-                Songs
-              </span>
-              <span onClick={() => this.updateSelectedCategory("artists")}>
-                Artists
-              </span>
-              <span onClick={() => this.updateSelectedCategory("playlists")}>
-                Playlists
-              </span>
+        <Router>
+          <header id="App-header">
+            <h3 id="title">Ljudio</h3>
+            <div>
+              <div>
+                <nav>
+                  <ul id="link-nav">
+                    <li>
+                      <Link to="/">Search</Link>
+                    </li>
+                    <li>
+                      <Link to="/playlist">Playlist</Link>
+                    </li>
+                  </ul>
+                </nav>
+              </div>
+              <SearchBar
+                updateSearch={this.handleSearchUpdate} />
             </div>
-            <ShowCategory selected={this.state.selectedCategory}
-              songResults={this.state.songResults}
-              artistResults={this.state.artistResults}
-              playlistResults={this.state.playlistResults}
-              handleTimers={this.handleTimers}
-              addSongToPlaylist={this.addSongToPlaylist}/>
+          </header>
+          <div id="hero">
+            <Switch>
+              <Route path="/:id/artist">
+                <ArtistComp
+                  timeFunction={this.handleTimers}
+                  addSongToPlaylist={this.addSongToPlaylist} />
+              </Route>
+              <Route path="/:id/playlist">
+                <PlaylistComp
+                  timeFunction={this.handleTimers}
+                  addSongToPlaylist={this.addSongToPlaylist} />
+              </Route>
+              <Route path="/">
+                <SearchComp that={this}/>
+              </Route>
+            </Switch>
+            <div id="side-bar">
+              <ul id="side-bar-playlist">
+                {this.state.currentPlaylist.map(song =>
+                  <li key={song.id} onClick={(e) => {
+                    if (document.querySelector(".playing-now") != null)
+                      document.querySelector(".playing-now").className = ""
+                    e.target.parentElement.className = "playing-now"
+                    let parent = e.target.parentElement
+                    setTimeout(() => {
+                      let childIndex = Array.prototype.indexOf.call(parent.children, e.target.parentElement)
+                      this.setState({ currentPlayIndex: childIndex })
+                    }, 100);
+                    PlayVideo(song.videoId)
+                    this.handleTimers(song.duration)
+                  }}>
+                    <div onClick={(e) => e.stopPropagation}>
+                      <img src={song.thumbnail} id="plist-img" alt="" />
+                      <span id="plist-span">{song.name}</span>
+                    </div>
+                  </li>
+                )}
+              </ul>
+            </div>
           </div>
-          <div id="side-bar">
-            <span>History</span>
-            <ul id="side-bar-playlist">
-              {this.state.currentPlaylist.map(song => 
-                <li key={song.id} onClick={(e) => {
-                  if(document.querySelector(".playing-now") != null)
-                    document.querySelector(".playing-now").className = ""
-                  e.target.parentElement.className = "playing-now"
-                  let parent = e.target.parentElement.parentElement
-                  setTimeout(() => {
-                    let childIndex = Array.prototype.indexOf.call(parent.children, e.target.parentElement)
-                    this.setState({ currentPlayIndex: childIndex })
-                  }, 100);
-                  PlayVideo(song.videoId)
-                }}>
-                  <img src={song.thumbnail}/>
-                  <span>{song.name}</span>
-                </li>
-              )}
-            </ul>
-          </div>
-        </div>
-        <footer id="player-controls">
-          <ProgressBar
-            duration={this.state.duration} currentTime={this.state.currentTime}
-            key={this.state.currentTime} />
-          {/*//SPLIT: Media controls should be it's own component*/}
-          <div id="media-controls">
-            <button class="fa fa-fast-backward" onClick={() =>skipOrRewind("rewind", this.state.currentPlayIndex, this.state.currentPlaylist, this)}></button>
-            <PlayOrPause isPlaying={this.state.isPlaying}
-              updateIsPlaying={this.updateIsPlaying} />
-            <button class="fa fa-fast-forward" onClick={() =>skipOrRewind("forward", this.state.currentPlayIndex, this.state.currentPlaylist, this)}></button>
-          </div>
-        </footer>
+          <footer id="player-controls">
+            <ProgressBar
+              duration={this.state.duration} currentTime={this.state.currentTime}
+              key={this.state.currentTime} />
+            <MediaControls currentPlaylist={this.state.currentPlaylist}
+              currentPlayIndex={this.state.currentPlayIndex}
+              updateIsPlaying={this.updateIsPlaying}
+              updateMedia={this.updateMedia}
+              isPlaying={this.state.isPlaying}
+              timeFunction={this.handleTimers}
+              key={this.state.mediaState}
+            />
+          </footer>
+        </Router>
       </div>
     )
   }
+}
+
+function SearchComp(props) {
+  return (
+    <div id="column">
+    <div className="category-select">
+      <span className="selected" onClick={() => props.that.updateSelectedCategory("songs")}>
+        Songs
+    </span>
+      <span onClick={() => props.that.updateSelectedCategory("artists")}>
+        Artists
+    </span>
+      <span onClick={() => props.that.updateSelectedCategory("playlists")}>
+        Playlists
+    </span>
+    </div>
+    <ShowCategory
+        selected={props.that.state.selectedCategory}
+        songResults={props.that.state.songResults}
+        artistResults={props.that.state.artistResults}
+        playlistResults={props.that.state.playlistResults}
+        handleTimers={props.that.handleTimers}
+        addSongToPlaylist={props.that.addSongToPlaylist}
+        setArtistId={props.that.setArtistId}/>
+  </div>
+  )
+}
+
+function ArtistComp(props) {
+  const { id } = useParams()
+  
+  return (
+    <>
+      <ArtistView id={id}
+        timeFunction={props.timeFunction}
+        addSongToPlaylist={props.addSongToPlaylist} />
+    </>
+  )
+}
+
+function PlaylistComp(props) {
+  const { id } = useParams()
+  
+  return (
+    <>
+      <PlaylistView id={id}
+        timeFunction={props.timeFunction}
+        addSongToPlaylist={props.addSongToPlaylist} />
+    </>
+  )
 }
 
 function ShowCategory(props) {
@@ -193,7 +283,8 @@ function ShowCategory(props) {
       <ul id="songList">
       {props.artistResults.map(song => 
         <li key={song.id}>
-          <SongCard song={song} key={song.name} timeFunction={props.handleTimers}/>
+          <SongCard song={song} key={song.name} timeFunction={props.handleTimers}
+            setArtistId={props.setArtistId}/>
         </li>
         )}
     </ul>
@@ -213,6 +304,7 @@ function ShowCategory(props) {
   }
 }
 
+/*
 function PlayOrPause(props) {
   function togglePlay(play) {
     if (play) {
@@ -264,6 +356,7 @@ function skipOrRewind(type, index, list, parent) {
     }
   }
 }
+*/
 
 export default App;
 

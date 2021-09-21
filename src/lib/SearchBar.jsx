@@ -34,9 +34,7 @@ class SearchBar extends React.Component{
             })
         }
 
-        this.setState({ songResults: newResults }, function () {
-            console.log(newId)
-        })
+        this.setState({ songResults: newResults })
     }
 
     updateArtistResult = async () => {
@@ -57,9 +55,7 @@ class SearchBar extends React.Component{
             })
         }
 
-        this.setState({ artistResults: newResults }, function () {
-            console.log(newId)
-        })
+        this.setState({ artistResults: newResults })
     }
 
     updatePlaylistResult = async () => {
@@ -71,20 +67,31 @@ class SearchBar extends React.Component{
         
         let newResults = []
         for (let i = 0; i < songList[0].content.length; i++) {
-            newResults.push({
-                videoId: songList[0].content[i].browseId,
-                id: i,
-                artist: songList[0].content[i].author,
-                name: songList[0].content[i].title,
-                thumbnail: songList[0].content[i].thumbnails[1].url,
-                trackCount: songList[0].content[i].trackCount,
-                type: songList[0].content[i].type
-            })
+            if (typeof (songList[0].content[i].thumbnails[1]) === 'undefined') {
+                newResults.push({
+                    videoId: songList[0].content[i].browseId,
+                    id: i,
+                    artist: songList[0].content[i].author,
+                    name: songList[0].content[i].title,
+                    thumbnail: '',
+                    trackCount: songList[0].content[i].trackCount,
+                    type: songList[0].content[i].type
+                })
+            }
+            else {
+                newResults.push({
+                    videoId: songList[0].content[i].browseId,
+                    id: i,
+                    artist: songList[0].content[i].author,
+                    name: songList[0].content[i].title,
+                    thumbnail: songList[0].content[i].thumbnails[1].url,
+                    trackCount: songList[0].content[i].trackCount,
+                    type: songList[0].content[i].type
+                })
+            }
         }
-
-        this.setState({ playlistResults: newResults }, function () {
-            console.log(newId)
-        })
+    
+        this.setState({ playlistResults: newResults })
     }
 
     updateResults() {
@@ -92,10 +99,11 @@ class SearchBar extends React.Component{
         this.updateArtistResult()
         this.updatePlaylistResult()
         setTimeout(() => {
-            this.props.updateSearch(this.state.songResults,
+            this.props.updateSearch(
+                this.state.songResults,
                 this.state.artistResults,
                 this.state.playlistResults)
-        }, 200);
+        }, 500);
     }
 
     handleSubmit = (e) => {
