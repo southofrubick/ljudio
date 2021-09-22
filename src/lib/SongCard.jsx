@@ -1,7 +1,7 @@
 import React from 'react'
 import { Redirect } from 'react-router-dom'
 
-class SongCard extends React.Component{
+class SongCard extends React.Component {
   constructor(props) {
     super(props)
 
@@ -15,20 +15,19 @@ class SongCard extends React.Component{
     let minutes = Math.floor(this.state.song.duration / 60000)
     let seconds = (this.state.song.duration - (1000 * minutes * 60)) / 1000
 
-    if(this.state.song.duration != null)
+    if (this.state.song.duration != null)
       return minutes + ":" + seconds
     if (this.state.song.trackCount != null)
       return this.state.song.trackCount + " Tracks"
   }
 
   handleClick(song, target) {
-    console.log(song)
     this.sendToParent(song, target)
     if (song.type === "artist") {
-      this.setState({Redirect: "/" + song.videoId + "/artist"})
+      this.setState({ Redirect: "/" + song.videoId + "/artist" })
     }
     if (song.type === "playlist") {
-      this.setState({Redirect: "/" + song.videoId + "/playlist"})
+      this.setState({ Redirect: "/" + song.videoId + "/playlist" })
     }
   }
   
@@ -77,9 +76,25 @@ class SongCard extends React.Component{
     }
   }
 
+  handleShare = (event, song) => {
+    event.stopPropagation()
+    if (song.type === "song") {
+      navigator.clipboard.writeText("localhost:3000/" + song.videoId + "/" + song.type)
+      alert("Song URL copied to clipboard")
+    }
+    else if (song.type === "artist") {
+      navigator.clipboard.writeText("localhost:3000/" + song.videoId + "/" + song.type)
+      alert("Artist URL copied to clipboard")
+    }
+    else {
+      navigator.clipboard.writeText("localhost:3000/" + song.videoId.slice(2) + "/" + song.type)
+      alert("Playlist URL copied to clipboard")
+    }
+  }
+
   render(props) {
     if (this.state.Redirect) {
-      return <Redirect to={this.state.Redirect}/>
+      return <Redirect to={this.state.Redirect} />
     }
     return (
       <>
@@ -87,7 +102,7 @@ class SongCard extends React.Component{
           this.handleClick(this.state.song, e.target)
         }}>
           <div className="song-image">
-            <img src={this.state.song.thumbnail} alt=""/>
+            <img src={this.state.song.thumbnail} alt="" />
           </div>
           <div className="about">
             <div className="image-overlay" />
@@ -104,7 +119,7 @@ class SongCard extends React.Component{
               </div>
             </div>
           </div>
-
+          <button className="fa fa-share-alt" onClick={(e) => this.handleShare(e, this.state.song)}></button>
         </div>
       </>
     )

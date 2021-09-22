@@ -159,6 +159,7 @@ li{
 .song-card{
   display: flex;
   flex-direction: column;
+  position: relative;
   margin: 1vh;
   background-color: rgba(125, 120, 105, .2);
   width: 10vw;
@@ -259,6 +260,7 @@ footer > #p-bar > #progress-bar{
   top: 2vh;
   left: 5%;
   overflow: hidden;
+  z-index: 100;
 }
 
 footer > #p-bar > span{
@@ -370,4 +372,32 @@ progress[value]::-webkit-progress-value:hover {
 
 #search-bar{
   display: flex;
+}
+
+.song-card > button{
+  position: absolute;
+  right: 0;
+  font-size: x-large;
+  outline: none;
+  border: none;
+  width: 1.8vw;
+  height: 1.8vw;
+  color: rgb(255, 90, 60);
+  background-color: rgba(0, 0, 0, 0);
+  text-shadow: 2px 2px 4px black, -1px -1px 0 rgba(255, 255, 255, .3);
+}
+
+.song-card > button:hover{
+  filter: brightness(120%) saturate(80%);
+  text-shadow: 0 0 6px black, 0 0 6px black;
+  cursor: pointer;
+}
+
+.fa-undo{
+  position: absolute;
+  top: 1vh;
+  left: 1vh;
+  font-size: xx-large;
+  text-decoration: none;
+  color: rgb(255, 90, 60);
 }

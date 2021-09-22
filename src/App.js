@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import SongCard from './lib/SongCard'
 import ArtistView from './lib/ArtistView'
 import PlaylistView from './lib/PlaylistView'
@@ -11,10 +11,11 @@ import {
   Switch,
   Route,
   Link,
-  useParams
+  useParams,
+  Redirect
 } from 'react-router-dom'
 
-//TODO: Give songs, artists and playlists independent urls - searchParam that fetches from API
+//TODO: Give songs independent urls - searchParam that fetches from API
 //TODO: Time on song sets to where on timeline you click
 
 //SPLIT: Turn into smaller components.. He getting chonky
@@ -42,15 +43,21 @@ class App extends React.Component {
     this.setState({ playlistResults: playlists })
   }
 
+  setCurrentTimeFromProgressBar = (dur) => {
+    this.handleTimers(dur)
+  }
+
   handleTimers = (dur) => {
     setTimeout(() => {
       let i = 0
       let self = this
       function loop() {
         setTimeout(() => {
-          self.setState({ currentTime: window.player.getCurrentTime() })
-          if (i < dur)
+          self.setState({
+            currentTime: window.player.getCurrentTime() })
+          if (i < dur) {
             loop()
+          }
         }, 100);
       }
 
@@ -126,6 +133,7 @@ class App extends React.Component {
         if (document.querySelector(".playing-now") != null)
           document.querySelector(".playing-now").className = ""
         document.querySelector("#side-bar-playlist").lastChild.className = "playing-now"
+        this.updateIsPlaying("true")
       }, 100);
   }
 
@@ -140,18 +148,6 @@ class App extends React.Component {
           <header id="App-header">
             <h3 id="title">Ljudio</h3>
             <div>
-              <div>
-                <nav>
-                  <ul id="link-nav">
-                    <li>
-                      <Link to="/">Search</Link>
-                    </li>
-                    <li>
-                      <Link to="/playlist">Playlist</Link>
-                    </li>
-                  </ul>
-                </nav>
-              </div>
               <SearchBar
                 updateSearch={this.handleSearchUpdate} />
             </div>
@@ -161,12 +157,19 @@ class App extends React.Component {
               <Route path="/:id/artist">
                 <ArtistComp
                   timeFunction={this.handleTimers}
-                  addSongToPlaylist={this.addSongToPlaylist} />
+                  addSongToPlaylist={this.addSongToPlaylist}
+                  that={this}/>
               </Route>
               <Route path="/:id/playlist">
                 <PlaylistComp
                   timeFunction={this.handleTimers}
-                  addSongToPlaylist={this.addSongToPlaylist} />
+                  addSongToPlaylist={this.addSongToPlaylist}
+                  that={this}/>
+              </Route>
+              <Route path="/:id/song">
+                <SongComp
+                  timeFunction={this.handleTimers}
+                  addSongToPlaylist={this.addSongToPlaylist}/>
               </Route>
               <Route path="/">
                 <SearchComp that={this}/>
@@ -199,7 +202,7 @@ class App extends React.Component {
           <footer id="player-controls">
             <ProgressBar
               duration={this.state.duration} currentTime={this.state.currentTime}
-              key={this.state.currentTime} />
+              key={this.state.currentTime} newTime={this.setCurrentTimeFromProgressBar}/>
             <MediaControls currentPlaylist={this.state.currentPlaylist}
               currentPlayIndex={this.state.currentPlayIndex}
               updateIsPlaying={this.updateIsPlaying}
@@ -241,14 +244,59 @@ function SearchComp(props) {
   )
 }
 
+function SongComp(props) {
+  const { id } = useParams()
+  let newResults = []
+  let changeUrl = false
+
+  async function getSong() {
+    let songList = []
+
+    const newId = await fetch('https://yt-music-api.herokuapp.com/api/yt/songs/' + id)
+      .then(response => response.json())
+      .then(data => songList.push(data))
+      
+    for (let i = 0; i < songList[0].content.length; i++) {
+      newResults.push({
+        videoId: songList[0].content[i].videoId,
+        id: i,
+        artist: songList[0].content[i].artist.name,
+        album: songList[0].content[i].album.name,
+        name: songList[0].content[i].name,
+        thumbnail: songList[0].content[i].thumbnails[1].url,
+        duration: songList[0].content[i].duration,
+        type: songList[0].content[i].type
+      })
+    }
+
+    setTimeout(() => {
+      props.timeFunction(newResults[0].duration)
+      props.addSongToPlaylist(newResults[0])
+      changeUrl = true
+    }, 1000);
+  }
+
+  useEffect(() => {
+    getSong()
+  }, [])
+
+  return (
+    <>
+      <Redirect to="/" />
+    </>
+  )
+}
+
 function ArtistComp(props) {
   const { id } = useParams()
   
   return (
     <>
+      <Link to="/" className="fa fa-undo"
+        onClick={() => props.that.updateSelectedCategory("songs")}></Link>
       <ArtistView id={id}
         timeFunction={props.timeFunction}
-        addSongToPlaylist={props.addSongToPlaylist} />
+        addSongToPlaylist={props.addSongToPlaylist}/>
     </>
   )
 }
@@ -258,9 +306,11 @@ function PlaylistComp(props) {
   
   return (
     <>
+    <Link to="/" className="fa fa-undo"
+        onClick={() => props.that.updateSelectedCategory("songs")}></Link>
       <PlaylistView id={id}
         timeFunction={props.timeFunction}
-        addSongToPlaylist={props.addSongToPlaylist} />
+        addSongToPlaylist={props.addSongToPlaylist}/>
     </>
   )
 }
@@ -304,152 +354,4 @@ function ShowCategory(props) {
   }
 }
 
-/*
-function PlayOrPause(props) {
-  function togglePlay(play) {
-    if (play) {
-      window.player.playVideo()
-      props.updateIsPlaying(true)
-    } else {
-      window.player.pauseVideo()
-      props.updateIsPlaying(false)
-    }
-  }
-  return (
-    <>
-      {props.isPlaying ? 
-        <button class="fa fa-pause" onClick={() => togglePlay(false)}></button> :
-        <button class="fa fa-play" onClick={() => togglePlay(true)}></button>}
-    </>
-  )
-}
-
-function skipOrRewind(type, index, list, parent) {
-  if (type === "rewind") {
-    if (index > 0) {
-      PlayVideo(list[index - 1].videoId)
-      parent.setState({currentPlayIndex: index - 1})
-      let parentEle = document.querySelector("#side-bar-playlist")
-      let childEle = document.querySelector(".playing-now")
-      if(document.querySelector(".playing-now") != null)
-        document.querySelector(".playing-now").className = ""
-      setTimeout(() => {
-        let childIndex = Array.prototype.indexOf.call(parentEle.children, childEle)
-        parentEle.children[childIndex - 1].className = "playing-now"
-        parent.updateIsPlaying(true)
-      }, 100);
-    }
-  }
-  if (type === "forward") {
-    if (list.length > index + 1) {
-      PlayVideo(list[index + 1].videoId)
-      parent.setState({currentPlayIndex: index + 1})
-      let parentEle = document.querySelector("#side-bar-playlist")
-      let childEle = document.querySelector(".playing-now")
-      if(document.querySelector(".playing-now") != null)
-        document.querySelector(".playing-now").className = ""
-      setTimeout(() => {
-        let childIndex = Array.prototype.indexOf.call(parentEle.children, childEle)
-        parentEle.children[childIndex + 1].className = "playing-now"
-        parent.updateIsPlaying(true)
-      }, 100);
-    }
-  }
-}
-*/
-
 export default App;
-
-
-
-//DEPRICATED
-/*
-
-//<Songs results={this.state.songResults}/>
-function App() {
-  const [songResults, updateSongResults] = useState([])
-  const [artistResults, updateArtistResults] = useState([])
-  const [albumResults, updateAlbumResults] = useState([])
-  const [songSearch, newSongSearch] = useState('Song title')
-  
-  let duration
-  let currentTime
-  setTimeout(() => {
-    duration = window.player.getDuration()
-    currentTime = window.player.getCurrentTime()
-  }, 1000);
-
-  function handleSearchUpdate(songs, artists, playlists) {
-    console.log(songs)
-    updateSongResults(songs)
-    updateArtistResults(artists)
-    updateAlbumResults(albums)
-  }
-
-  return (
-    <div className="App">
-      <header className="App-header">
-        <h3>Hi there!</h3>
-        <div>
-          <SearchBar
-            updateSearch={handleSearchUpdate}
-            songSearch={songSearch}
-            newSongSearch={newSongSearch}/>
-        </div>
-      </header>
-      <h2>Artists</h2>
-      <Artists results={artistResults}/>
-      <h2>Playlists</h2>
-      <Playlists results={albumResults} />
-      <h2>Songs</h2>
-      <Songs results={songResults}/>
-      <footer id="player-controls">
-        <ProgressBar
-          key={currentTime || 0}
-          currentTime={Math.floor(currentTime) || 0}
-          duration={Math.floor(duration) || 100}
-        />
-      </footer>
-    </div>
-  )
-}
-
-function ProgressBar(props) {
-  const [currentTime, setCurrentTime] = useState(props.currentTime)
-  const [duration, setDuration] = useState(props.duration)
-
-  const onCurrentTime = () => {
-    setCurrentTime(props.currentTime)
-    return currentTime
-  }
-
-  const onDuration = () => {
-    setDuration(props.duration)
-    return duration
-  }
-
-  let currentMinutes = Math.floor(currentTime / 60)
-  let currentSeconds = (currentTime - (currentMinutes * 60))
-  if (currentSeconds < 10)
-    currentSeconds = "0" + currentSeconds
-  currentMinutes += ":"
-  let durMinutes = Math.floor(duration / 60)
-  let durSeconds = (duration - (durMinutes * 60))
-  if (durSeconds < 10)
-    durSeconds = "0" + durSeconds
-  durMinutes += ":"
-  let newCurrentTime = currentMinutes + currentSeconds
-  let newDuration = durMinutes + durSeconds
-  
-  return (
-    <>
-      <div id="progress-bar">
-        <div key={currentTime} id="progress-fill"></div>
-      </div>
-      <span key={props.getCurrentTime} id="progress-span">{newCurrentTime + "/" + newDuration}</span>
-    </>
-  )
-}
-
-//<button onClick={() => playVideo(vidId)}>▶</button>
-*/
